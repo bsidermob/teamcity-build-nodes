@@ -1,0 +1,121 @@
+{
+  "variables": {
+    "build_version": "1.0.0",
+    "user": "fill_in",
+    "password": "fill_in",
+    "vpc_id":"",
+    "subnet_id": "subnet-2ce5da48",
+    "profile": "",
+    "ami_name": "TeamCity-BuildNode-IIS-Windows",
+    "base_ami_name": "Base-BuildAgent",
+    "octopus_machine_prefix": "au-dev-on-demand-"
+  },
+  "_comment" : "This is an IIS Dev node",
+  "builders": [
+    {
+      "profile": "{{user `profile`}}",
+      "type": "amazon-ebs",
+      "region": "ap-southeast-2",
+      "instance_type": "t2.xlarge",
+      "ami_name": "{{user `ami_name`}}",
+      "source_ami_filter": {
+         "filters": {
+            "name": "{{user `base_ami_name`}}"
+         }
+       },
+      "subnet_id": "{{user `subnet_id`}}",
+      "force_deregister": "true",
+      "force_delete_snapshot": "true",
+      "communicator": "winrm",
+      "winrm_username": "Administrator",
+      "winrm_use_ssl": false,
+      "winrm_insecure": true,
+      "winrm_timeout": "5m",
+      "ami_block_device_mappings": [ {
+            "device_name": "/dev/sda1",
+            "volume_type": "gp2",
+            "volume_size": 40,
+            "delete_on_termination": true
+        },
+        {
+            "device_name": "/dev/sda2",
+            "volume_type": "gp2",
+            "volume_size": 20,
+            "delete_on_termination": true
+        } ],
+        "launch_block_device_mappings": [ {
+            "device_name": "/dev/sda1",
+            "volume_type": "gp2",
+            "volume_size": 40,
+            "delete_on_termination": true
+        }
+       ]
+    }
+  ],
+  "provisioners" : [
+    {
+      "type": "file",
+      "source": "./AWS/LaunchConfig.json",
+      "destination": "C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Config\\LaunchConfig.json"
+    },
+    {
+      "type": "file",
+      "source": "./scripts/register_octopus.ps1",
+      "destination": "C:\\Users\\Administrator\\register_octopus.ps1"
+    },
+    {
+      "type": "file",
+      "source": "./scripts/logon_items.ps1",
+      "destination": "C:\\Users\\Administrator\\logon_items.ps1"
+    },
+    {
+      "type": "file",
+      "source": "./scripts/Set-AutoLogon.ps1",
+      "destination": "C:\\Users\\Administrator\\Set-AutoLogon.ps1"
+    },
+    {
+      "type": "file",
+      "source": "./scripts/execute_userdata.ps1",
+      "destination": "C:\\Users\\Administrator\\execute_userdata.ps1"
+    },
+    {
+      "type": "file",
+      "source": "./scripts/set_notepad_default.ps1",
+      "destination": "C:\\Users\\Administrator\\set_notepad_default.ps1"
+    },
+    {
+      "type": "powershell",
+      "inline": [
+          "Import-Module C:\\Users\\Administrator\\Set-AutoLogon.ps1; Set-AutoLogon -DefaultUsername {{user `user`}} -DefaultPassword {{user `password`}}",
+          "C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Scripts\\InitializeDisks.ps1 -Schedule",
+          "[Environment]::SetEnvironmentVariable(\"AdminPass\", \"{{user `password`}}\", \"Machine\")",
+          "[Environment]::SetEnvironmentVariable(\"OctopusMachinePrefix\", \"{{user `octopus_machine_prefix`}}\", \"Machine\")"
+        ]
+    },
+    {
+      "type": "powershell",
+      "script": "./scripts/build_agent_provisioning.ps1"
+    },
+    {
+      "type": "powershell",
+      "script": "./scripts/install_octopus.ps1"
+    },
+    {
+      "type": "powershell",
+      "script": "./scripts/add_hosts.ps1"
+    },
+    {
+      "type": "powershell",
+      "environment_vars": ["AdminUser={{user `user`}}"],
+      "script": "./scripts/add_scheduled_tasks.ps1"
+    },
+    {
+      "type": "powershell",
+      "valid_exit_codes": ["16001", "0"],
+      "environment_vars": ["AdminUser={{user `user`}}", "Password={{user `password`}}"],
+      "scripts": [
+          "./scripts/disable_winrm_change_pass.ps1"
+      ]
+    }
+  ]
+}

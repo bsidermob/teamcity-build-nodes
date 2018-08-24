@@ -1,0 +1,48 @@
+<powershell>
+
+# Add readme to Desktop
+
+$readme_body = @"
+This VM is intended for dev usage. Upon spin up, Octopus deploys
+the current Development and Testing release to it. You can see the release
+numbers in Octopus Deploy Web UI. Octopus service stops after 20 minutes so new
+deploys won't be happening unless you run manually "Octopus_Start"
+link on desktop.
+
+This VM has exactly the same configuration as our TeamCity build nodes. If
+something builds there - it'll build here and vice versa.
+
+Please shutdown the VM when you're finished. It'll be deleted automatically upon
+shutdown so if you'd need a new one, spin up a new one. Please be mindful
+as we're trying to save up on AWS costs.
+
+Enjoy.
+"@
+
+[System.IO.File]::WriteAllLines("C:\Users\Administrator\Desktop\README.txt", $readme_body)
+
+
+# Disable TeamCity agent start on boot up
+rm "C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\teamcity_agent.bat"
+
+# Terminate TeamCity agent if running
+Stop-Process -Name "Java" -Force
+
+# Disable Octopus Deploy service
+Set-Service "OctopusDeploy Tentacle" -StartupType Manual
+
+# Wait 30 secs
+Start-Sleep -s 30
+
+# Terminate TeamCity agent if running. Again.
+Stop-Process -Name "Java" -Force
+
+# Wait 20 minutes
+Start-Sleep -s 1200
+
+# Stop Octopus Deploy service
+# It is assumed that in 10 minutes it has pulled all the latest deployments
+Stop-Service "OctopusDeploy Tentacle"
+
+
+</powershell>

@@ -1,0 +1,55 @@
+{
+  "variables": {
+    "build_version": "1.0.0",
+    "base_ami": "ami-8ef42bec",
+    "vpc_id":"",
+    "subnet_id": "subnet-2ce5da48",
+    "profile": "",
+    "ami_name": "Base-IIS-Windows"
+  },
+  "_comment" : "This is a base Windows node with IIS features switched on",
+  "builders": [
+    {
+      "profile": "{{user `profile`}}",
+      "type": "amazon-ebs",
+      "region": "ap-southeast-2",
+      "source_ami": "{{user `base_ami`}}",
+      "instance_type": "t2.xlarge",
+      "ami_name": "{{user `ami_name`}}",
+      "subnet_id": "{{user `subnet_id`}}",
+      "force_deregister": "true",
+      "force_delete_snapshot": "true",
+      "user_data_file":"./AWS/ec2-userdata.ps1",
+      "communicator": "winrm",
+      "winrm_username": "Administrator",
+      "winrm_use_ssl": false,
+      "winrm_insecure": true,
+      "winrm_timeout": "5m",
+      "ami_block_device_mappings": [ {
+            "device_name": "/dev/sda1",
+            "volume_type": "gp2",
+            "volume_size": 30,
+            "delete_on_termination": true
+        } ],
+        "launch_block_device_mappings": [ {
+            "device_name": "/dev/sda1",
+            "volume_type": "gp2",
+            "volume_size": 30,
+            "delete_on_termination": true
+        }
+       ]
+    }
+  ],
+  "provisioners" : [
+    {
+      "type": "powershell",
+      "script": "./scripts/base_provisioning.ps1"
+    },
+    {
+      "type": "powershell",
+      "inline": [
+          "C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Scripts\\InitializeInstance.ps1 -Schedule"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+This is a terraform template used by TeamCity job 'SpinUpDevVM'.
+
+It's a launch configuration with settings which are used to spin up those VMs.
+Make sure you destroy the configuration first using
+terraform destoy
+
+As otherwise, the default version would point to the previous version
+Then run
+terraform apply
+
+or run ./Launch-Template/execute.sh from the parent folder

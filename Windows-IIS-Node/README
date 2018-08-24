@@ -1,0 +1,9 @@
+This is a Packer template which creates an AWS AMI image which is used by TeamCity build nodes.
+
+As there's lots of Windows features in it, it is very time consuming to rebuild everything from scratch upon a minor change, hence 
+it's split up in 3 images (layers):
+
+1. Base-IIS-Windows
+2. Base-BuildAgent
+3. BuildAgent
+
